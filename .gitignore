@@ -1,0 +1,31 @@
+# .gitignore
+# Terraform files that should NOT be committed to Git
+
+# Local .terraform directory (downloaded providers - large files)
+.terraform/
+
+# Crash log files
+crash.log
+crash.*.log
+
+# State files - NEVER commit these, use remote state instead!
+*.tfstate
+*.tfstate.*
+
+# Terraform plan output files
+*.tfplan
+
+# Variable files that may contain secrets
+*.tfvars.json
+# Uncomment the line below if your tfvars has secrets:
+# terraform.tfvars
+
+# Override files (local developer overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration files
+.terraformrc
+terraform.rc
