@@ -3,36 +3,32 @@ name: "Terraform CI/CD"
 on:
   push:
     branches:
-      - master      # Trigger khi merge vào master → sẽ apply
+      - master
   pull_request:
     branches:
-      - master      # Trigger khi tạo PR → chỉ plan, không apply
+      - master
 
-# Đảm bảo chỉ 1 workflow chạy tại 1 thời điểm (tránh conflict state)
 concurrency:
   group: terraform-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  TF_VERSION: "1.7.0"          # Phiên bản Terraform
-  AWS_REGION: "ap-southeast-1"  # Region của bạn
+  TF_VERSION: "1.7.0"
+  AWS_REGION: "ap-southeast-1"
 
 jobs:
   terraform:
     name: "Terraform"
     runs-on: ubuntu-latest
 
-    # Cấp quyền để workflow có thể comment vào Pull Request
     permissions:
       contents: read
       pull-requests: write
 
     steps:
-      # ─── Step 1: Checkout code ───────────────────────────────
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # ─── Step 2: Cấu hình AWS credentials (từ GitHub Secrets) ─
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -40,92 +36,28 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      # ─── Step 3: Cài Terraform ────────────────────────────────
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      # ─── Step 4: terraform init ───────────────────────────────
       - name: Terraform Init
         id: init
         run: terraform init
 
-      # ─── Step 5: terraform fmt (kiểm tra code style) ─────────
       - name: Terraform Format Check
         id: fmt
         run: terraform fmt -check -recursive
-        continue-on-error: true   # Không fail pipeline, chỉ báo lỗi
 
-      # ─── Step 6: terraform validate (kiểm tra syntax) ────────
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
 
-      # ─── Step 7: terraform plan ───────────────────────────────
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
-        continue-on-error: true   # Cho phép step tiếp theo chạy dù plan fail
 
-      # ─── Step 8: Post plan result vào PR comment ─────────────
-      # Chỉ chạy khi là Pull Request
-      - name: Comment Plan on PR
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        env:
-          PLAN: ${{ steps.plan.outputs.stdout }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            // Xoá comment cũ của bot (nếu có) để tránh spam
-            const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Terraform Plan')
-            });
-            if (botComment) {
-              await github.rest.issues.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-              });
-            }
-
-            const output = `## 📋 Terraform Plan Result
-            #### 🖌 Format Check: \`${{ steps.fmt.outcome }}\`
-            #### ⚙️ Init: \`${{ steps.init.outcome }}\`
-            #### ✅ Validate: \`${{ steps.validate.outcome }}\`
-            #### 📖 Plan: \`${{ steps.plan.outcome }}\`
-
-            <details><summary>Show Plan Output</summary>
-
-            \`\`\`terraform
-            ${process.env.PLAN}
-            \`\`\`
-
-            </details>
-
-            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            });
-
-      # ─── Step 9: Fail nếu plan bị lỗi ───────────────────────
-      - name: Check Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
-
-      # ─── Step 10: terraform apply ─────────────────────────────
-      # CHỈ chạy khi push vào master (không chạy khi PR)
+      # ONLY run when push to master
       - name: Terraform Apply
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
