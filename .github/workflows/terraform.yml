@@ -3,10 +3,10 @@ name: "Terraform CI/CD"
 on:
   push:
     branches:
-      - main        # Trigger khi merge vào main → sẽ apply
+      - master      # Trigger khi merge vào master → sẽ apply
   pull_request:
     branches:
-      - main        # Trigger khi tạo PR → chỉ plan, không apply
+      - master      # Trigger khi tạo PR → chỉ plan, không apply
 
 # Đảm bảo chỉ 1 workflow chạy tại 1 thời điểm (tránh conflict state)
 concurrency:
@@ -125,7 +125,7 @@ jobs:
         run: exit 1
 
       # ─── Step 10: terraform apply ─────────────────────────────
-      # CHỈ chạy khi push vào main (không chạy khi PR)
+      # CHỈ chạy khi push vào master (không chạy khi PR)
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
