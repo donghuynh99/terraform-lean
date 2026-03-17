@@ -55,8 +55,8 @@ module "ec2" {
   project_name      = var.project_name
   environment       = var.environment
   instance_type     = var.instance_type
-  subnet_id         = module.vpc.public_subnet_id    # ← Output từ module vpc
-  security_group_id = module.vpc.security_group_id   # ← Output từ module vpc
+  subnet_id         = module.vpc.public_subnet_id
+  security_group_id = module.vpc.security_group_id
 }
 
 # --------------------------------------------------
