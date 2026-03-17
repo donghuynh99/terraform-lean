@@ -17,13 +17,13 @@ terraform {
   required_version = ">= 1.0"
 
   // comment this section and run init -migrate-state if you want copy state back to local
-  # backend "s3" {
-  #   bucket         = "terraform-learn-state-donghuynh"
-  #   key            = "dev/terraform.tfstate"
-  #   region         = "ap-southeast-1"
-  #   dynamodb_table = "terraform-learn-lock"
-  #   encrypt        = true
-  # }
+  backend "s3" {
+    bucket         = "terraform-learn-state-donghuynh"
+    key            = "dev/terraform.tfstate"
+    region         = "ap-southeast-1"
+    dynamodb_table = "terraform-learn-lock"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
